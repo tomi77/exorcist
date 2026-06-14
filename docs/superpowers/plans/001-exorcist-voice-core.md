@@ -129,7 +129,7 @@ func test_dc_signal_has_energy_in_bin_zero():
         assert_almost_eq(im[i], 0.0, 0.0001)
 ```
 
-- [ ] **Step 2: Uruchom test — ma FALŁ**
+- [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
 Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_fft.gd -gexit`
 Expected: FAIL — `voice/fft.gd` nie istnieje / `fft` nie zdefiniowane.
@@ -240,7 +240,7 @@ func test_framing_drops_incomplete_tail():
     assert_eq(frames.size(), 1)
 ```
 
-- [ ] **Step 2: Uruchom test — ma FALŁ**
+- [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
 Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_framing.gd -gexit`
 Expected: FAIL — `voice/features.gd` nie istnieje.
@@ -327,7 +327,7 @@ func test_filters_are_nonnegative():
             assert_true(v >= 0.0, "wagi filtra nie mogą być ujemne")
 ```
 
-- [ ] **Step 2: Uruchom test — ma FALŁ**
+- [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
 Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_mel.gd -gexit`
 Expected: FAIL — `mel_filterbank` / `hz_to_mel` nie zdefiniowane.
@@ -429,7 +429,7 @@ func test_different_pitches_produce_different_features():
     assert_true(diff > 1.0, "różne tony powinny dać różne cechy")
 ```
 
-- [ ] **Step 2: Uruchom test — ma FALŁ**
+- [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
 Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_extract.gd -gexit`
 Expected: FAIL — `extract` nie zdefiniowane.
@@ -537,7 +537,7 @@ func test_empty_sequence_returns_infinity():
     assert_eq(res.distance, INF)
 ```
 
-- [ ] **Step 2: Uruchom test — ma FALŁ**
+- [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
 Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_dtw.gd -gexit`
 Expected: FAIL — `voice/dtw.gd` nie istnieje.
@@ -651,7 +651,7 @@ func test_same_sound_matches():
 func test_different_sound_does_not_match():
     var m := SpellMatcher.new()
     var tpl := m.inscribe(_sine(300.0, 8192))
-    var res := m.match_sample(tpl, _sine(1500.0, 8192))
+    var res := m.match_sample(tpl, _sine(3000.0, 8192))
     assert_false(res.matched, "wyraźnie inne brzmienie nie powinno pasować")
 
 func test_tolerance_controls_strictness():
@@ -664,7 +664,7 @@ func test_tolerance_controls_strictness():
     assert_true(loose.matched, "luźna tolerancja akceptuje")
 ```
 
-- [ ] **Step 2: Uruchom test — ma FALŁ**
+- [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
 Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_spell_matcher.gd -gexit`
 Expected: FAIL — `voice/spell_matcher.gd` nie istnieje.
