@@ -30,7 +30,35 @@ Pliki źródłowe (wszystkie pod `res://`):
 - `voice/spell_matcher.gd` — API rdzenia: `inscribe()` i `match_sample()`.
 - `voice/mic_recorder.gd` — integracja z mikrofonem (Godot `AudioEffectCapture`).
 - `demo/voice_demo.tscn` + `demo/voice_demo.gd` — scena demo do testu manualnego.
-- `test/` — testy GUT (jeden plik na moduł).
+- `tests/` — testy GUT (jeden plik na moduł).
+
+---
+
+## Konwencje Godot (wnioski z projektu church-manager)
+
+Te zasady wynikają z problemów napotkanych w siostrzanym projekcie `church-manager`
+(patrz jego `CLAUDE.md`) — stosujemy je od początku, żeby ich nie powtórzyć:
+
+- **Wcięcia: TABULATORY, nie spacje.** Edytor Godota domyślnie używa tabów;
+  mieszanie ze spacjami powoduje ciągłe przeformatowania i szum w diffach. Bloki
+  kodu w tym planie używają spacji dla czytelności — **przy wklejaniu skonwertuj na
+  taby** (albo pozwól edytorowi Godota sformatować plik).
+- **Preferuj `const X = preload("res://...")` zamiast `class_name`.** Godot
+  rozwiązuje `class_name` przez `.godot/global_script_class_cache.cfg` (gitignored).
+  Po utworzeniu nowego skryptu z `class_name` testy headless potrafią paść z
+  „Could not find type X", dopóki cache się nie odświeży. Ten plan celowo używa
+  `preload` i NIE deklaruje `class_name` — dzięki temu problem nie występuje.
+- **Odświeżenie cache:** jeśli mimo to test headless zgłosi „Could not find type",
+  odśwież cache: `godot --headless --path . --quit` (lub otwórz raz projekt w edytorze).
+- **Węzły sceny przez `%UniqueName`, nie ścieżki stringowe.** Ustawiaj
+  `unique_name_in_owner = true` na nazwanych węzłach i odwołuj się `%Status`, nigdy
+  `$VBox/.../Label` — ścieżki stringowe są kruche przy zmianach drzewa sceny.
+- **Settery chroń `is_inside_tree()`** zanim dotkniesz zmiennych `@onready`
+  (istotne zwłaszcza w kolejnych planach UI).
+- **Sygnały: forma stringowa** `emit_signal("nazwa", args)` (konwencja całego
+  siostrzanego projektu).
+- **Testy: ścieżki `res://` absolutne** — nazwy względne bywają pomijane przez GUT.
+  Pełny zestaw uruchamiaj z `-ginclude_subdirs`. Katalog testów: `tests/`.
 
 ---
 
@@ -40,7 +68,7 @@ Pliki źródłowe (wszystkie pod `res://`):
 - Create: `project.godot`
 - Create: `.gitignore`
 - Create: `addons/gut/` (wtyczka GUT)
-- Create: `test/.gdignore` (puste — żeby Godot nie importował testów jako zasobów gry)
+- Create: `tests/.gdignore` (puste — żeby Godot nie importował testów jako zasobów gry)
 
 - [ ] **Step 1: Utwórz projekt Godot**
 
@@ -62,11 +90,11 @@ export_presets.cfg
 
 - [ ] **Step 4: Zablokuj import testów jako zasobów**
 
-Utwórz pusty plik `test/.gdignore` (sama obecność pliku wystarcza).
+Utwórz pusty plik `tests/.gdignore` (sama obecność pliku wystarcza).
 
 - [ ] **Step 5: Zweryfikuj, że GUT działa**
 
-Utwórz tymczasowy `test/test_smoke.gd`:
+Utwórz tymczasowy `tests/test_smoke.gd`:
 
 ```gdscript
 extends GutTest
@@ -75,14 +103,14 @@ func test_smoke():
     assert_eq(1 + 1, 2, "matematyka działa")
 ```
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://test -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit`
 Expected: 1 test, 1 passing, exit code 0.
 
 - [ ] **Step 6: Usuń smoke test i commit**
 
 ```bash
-rm test/test_smoke.gd
-git add project.godot .gitignore addons/gut test/.gdignore icon.svg
+rm tests/test_smoke.gd
+git add project.godot .gitignore addons/gut tests/.gdignore icon.svg
 git commit -m "chore: scaffold Godot project with GUT test runner"
 ```
 
@@ -92,11 +120,11 @@ git commit -m "chore: scaffold Godot project with GUT test runner"
 
 **Files:**
 - Create: `voice/fft.gd`
-- Test: `test/test_fft.gd`
+- Test: `tests/test_fft.gd`
 
 - [ ] **Step 1: Napisz failing test**
 
-`test/test_fft.gd`:
+`tests/test_fft.gd`:
 
 ```gdscript
 extends GutTest
@@ -131,7 +159,7 @@ func test_dc_signal_has_energy_in_bin_zero():
 
 - [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_fft.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_fft.gd -gexit`
 Expected: FAIL — `voice/fft.gd` nie istnieje / `fft` nie zdefiniowane.
 
 - [ ] **Step 3: Zaimplementuj FFT**
@@ -189,13 +217,13 @@ static func fft(re: Array, im: Array) -> void:
 
 - [ ] **Step 4: Uruchom test — ma PRZEJŚĆ**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_fft.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_fft.gd -gexit`
 Expected: 2 testy, 2 passing.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add voice/fft.gd test/test_fft.gd
+git add voice/fft.gd tests/test_fft.gd
 git commit -m "feat: add radix-2 FFT for voice feature extraction"
 ```
 
@@ -205,11 +233,11 @@ git commit -m "feat: add radix-2 FFT for voice feature extraction"
 
 **Files:**
 - Create: `voice/features.gd`
-- Test: `test/test_features_framing.gd`
+- Test: `tests/test_features_framing.gd`
 
 - [ ] **Step 1: Napisz failing test**
 
-`test/test_features_framing.gd`:
+`tests/test_features_framing.gd`:
 
 ```gdscript
 extends GutTest
@@ -242,7 +270,7 @@ func test_framing_drops_incomplete_tail():
 
 - [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_framing.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_features_framing.gd -gexit`
 Expected: FAIL — `voice/features.gd` nie istnieje.
 
 - [ ] **Step 3: Zaimplementuj okno i ramkowanie**
@@ -282,13 +310,13 @@ static func frame_signal(samples: PackedFloat32Array, frame_size: int, hop: int)
 
 - [ ] **Step 4: Uruchom test — ma PRZEJŚĆ**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_framing.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_features_framing.gd -gexit`
 Expected: 3 testy, 3 passing.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add voice/features.gd test/test_features_framing.gd
+git add voice/features.gd tests/test_features_framing.gd
 git commit -m "feat: add Hann window and signal framing"
 ```
 
@@ -298,11 +326,11 @@ git commit -m "feat: add Hann window and signal framing"
 
 **Files:**
 - Modify: `voice/features.gd` (dopisz funkcje mel)
-- Test: `test/test_features_mel.gd`
+- Test: `tests/test_features_mel.gd`
 
 - [ ] **Step 1: Napisz failing test**
 
-`test/test_features_mel.gd`:
+`tests/test_features_mel.gd`:
 
 ```gdscript
 extends GutTest
@@ -329,7 +357,7 @@ func test_filters_are_nonnegative():
 
 - [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_mel.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_features_mel.gd -gexit`
 Expected: FAIL — `mel_filterbank` / `hz_to_mel` nie zdefiniowane.
 
 - [ ] **Step 3: Dopisz funkcje mel do `voice/features.gd`**
@@ -376,13 +404,13 @@ static func mel_filterbank(n_mels: int, n_fft: int, sample_rate: float, fmin: fl
 
 - [ ] **Step 4: Uruchom test — ma PRZEJŚĆ**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_mel.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_features_mel.gd -gexit`
 Expected: 3 testy, 3 passing.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add voice/features.gd test/test_features_mel.gd
+git add voice/features.gd tests/test_features_mel.gd
 git commit -m "feat: add mel filterbank"
 ```
 
@@ -392,11 +420,11 @@ git commit -m "feat: add mel filterbank"
 
 **Files:**
 - Modify: `voice/features.gd` (dopisz `extract`)
-- Test: `test/test_features_extract.gd`
+- Test: `tests/test_features_extract.gd`
 
 - [ ] **Step 1: Napisz failing test**
 
-`test/test_features_extract.gd`:
+`tests/test_features_extract.gd`:
 
 ```gdscript
 extends GutTest
@@ -431,7 +459,7 @@ func test_different_pitches_produce_different_features():
 
 - [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_extract.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_features_extract.gd -gexit`
 Expected: FAIL — `extract` nie zdefiniowane.
 
 - [ ] **Step 3: Dopisz `extract` do `voice/features.gd`**
@@ -479,13 +507,13 @@ static func extract(samples: PackedFloat32Array, frame_size: int, hop: int,
 
 - [ ] **Step 4: Uruchom test — ma PRZEJŚĆ**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_features_extract.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_features_extract.gd -gexit`
 Expected: 2 testy, 2 passing.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add voice/features.gd test/test_features_extract.gd
+git add voice/features.gd tests/test_features_extract.gd
 git commit -m "feat: add log-mel feature extraction pipeline"
 ```
 
@@ -495,11 +523,11 @@ git commit -m "feat: add log-mel feature extraction pipeline"
 
 **Files:**
 - Create: `voice/dtw.gd`
-- Test: `test/test_dtw.gd`
+- Test: `tests/test_dtw.gd`
 
 - [ ] **Step 1: Napisz failing test**
 
-`test/test_dtw.gd`:
+`tests/test_dtw.gd`:
 
 ```gdscript
 extends GutTest
@@ -539,7 +567,7 @@ func test_empty_sequence_returns_infinity():
 
 - [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_dtw.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_dtw.gd -gexit`
 Expected: FAIL — `voice/dtw.gd` nie istnieje.
 
 - [ ] **Step 3: Zaimplementuj DTW**
@@ -600,13 +628,13 @@ static func distance(seq_a: Array, seq_b: Array) -> Dictionary:
 
 - [ ] **Step 4: Uruchom test — ma PRZEJŚĆ**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_dtw.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_dtw.gd -gexit`
 Expected: 4 testy, 4 passing.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add voice/dtw.gd test/test_dtw.gd
+git add voice/dtw.gd tests/test_dtw.gd
 git commit -m "feat: add DTW distance for feature sequences"
 ```
 
@@ -616,13 +644,13 @@ git commit -m "feat: add DTW distance for feature sequences"
 
 **Files:**
 - Create: `voice/spell_matcher.gd`
-- Test: `test/test_spell_matcher.gd`
+- Test: `tests/test_spell_matcher.gd`
 
 To spina cały rdzeń: `inscribe()` zamienia nagranie na szablon (sekwencję cech), a `match_sample()` porównuje nowe nagranie z szablonem i zwraca decyzję wg tolerancji. Normalizujemy odległość DTW przez liczbę kroków, żeby próg był niezależny od długości nagrania.
 
 - [ ] **Step 1: Napisz failing test**
 
-`test/test_spell_matcher.gd`:
+`tests/test_spell_matcher.gd`:
 
 ```gdscript
 extends GutTest
@@ -666,7 +694,7 @@ func test_tolerance_controls_strictness():
 
 - [ ] **Step 2: Uruchom test — ma dać FAŁSZ (FAIL)**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_spell_matcher.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_spell_matcher.gd -gexit`
 Expected: FAIL — `voice/spell_matcher.gd` nie istnieje.
 
 - [ ] **Step 3: Zaimplementuj SpellMatcher**
@@ -709,20 +737,20 @@ func match_sample(template: Array, samples: PackedFloat32Array, tolerance: float
 
 - [ ] **Step 4: Uruchom test — ma PRZEJŚĆ**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://test/test_spell_matcher.gd -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gtest=res://tests/test_spell_matcher.gd -gexit`
 Expected: 4 testy, 4 passing.
 
 > Uwaga dot. strojenia: jeśli `test_different_sound_does_not_match` lub `test_same_sound_matches` zachowa się niespodziewanie, to znak, że `DEFAULT_TOLERANCE` wymaga kalibracji — wartość 8.0 jest punktem startowym do strojenia w Task 8. Testy syntetyczne (czyste sinusy) zwykle dają wyraźny rozdział; realne strojenie nastąpi na żywym głosie.
 
 - [ ] **Step 5: Uruchom CAŁY zestaw testów**
 
-Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://test -gexit`
+Run: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit`
 Expected: wszystkie testy ze wszystkich plików passing.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add voice/spell_matcher.gd test/test_spell_matcher.gd
+git add voice/spell_matcher.gd tests/test_spell_matcher.gd
 git commit -m "feat: add SpellMatcher with tolerance-based matching"
 ```
 
@@ -821,9 +849,9 @@ extends Control
 const SpellMatcher = preload("res://voice/spell_matcher.gd")
 const MicRecorder = preload("res://voice/mic_recorder.gd")
 
-@onready var _status: Label = $VBox/Status
-@onready var _inscribe_btn: Button = $VBox/InscribeBtn
-@onready var _cast_btn: Button = $VBox/CastBtn
+@onready var _status: Label = %Status
+@onready var _inscribe_btn: Button = %InscribeBtn
+@onready var _cast_btn: Button = %CastBtn
 
 var _mic: Node
 var _matcher := SpellMatcher.new()
@@ -875,6 +903,8 @@ W edytorze utwórz `demo/voice_demo.tscn`:
   - `Label` o nazwie `Status`
   - `Button` o nazwie `InscribeBtn` (tekst „Inskrybuj")
   - `Button` o nazwie `CastBtn` (tekst „Rzuć")
+- Na `Status`, `InscribeBtn`, `CastBtn` zaznacz **„Access as Unique Name"**
+  (`unique_name_in_owner = true`) — skrypt odwołuje się do nich przez `%Status` itd.
 
 Ustaw scenę główną: Project → Project Settings → Application → Run → Main Scene → `demo/voice_demo.tscn`.
 
@@ -902,7 +932,7 @@ git commit -m "feat: add voice core demo scene with live tolerance tuning"
 
 ## Definicja ukończenia (Voice Core)
 
-- [ ] Wszystkie testy jednostkowe przechodzą: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://test -gexit`
+- [ ] Wszystkie testy jednostkowe przechodzą: `godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit`
 - [ ] Scena demo: to samo brzmienie → TRAFIONE, inne brzmienie → PUDŁO (powtarzalnie).
 - [ ] `DEFAULT_TOLERANCE` wstępnie skalibrowane na żywym głosie.
 - [ ] Zanotowana ocena ryzyka: czy rozdział „to samo / różne" jest wystarczający do dalszej budowy gry?
