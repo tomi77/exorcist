@@ -64,3 +64,42 @@ static func mel_filterbank(n_mels: int, n_fft: int, sample_rate: float, fmin: fl
 			filt[k] = val
 		filters.append(filt)
 	return filters
+
+## Pełny potok: PCM (mono, [-1,1]) -> sekwencja wektorów log-mel.
+## Zwraca Array of PackedFloat32Array (każdy długości n_mels).
+static func extract(samples: PackedFloat32Array, frame_size: int, hop: int,
+		n_mels: int, sample_rate: float, fmin: float, fmax: float) -> Array:
+	var window: PackedFloat32Array = hann_window(frame_size)
+	var filterbank: Array = mel_filterbank(n_mels, frame_size, sample_rate, fmin, fmax)
+	var n_bins: int = frame_size / 2 + 1
+	var frames: Array = frame_signal(samples, frame_size, hop)
+
+	var result: Array = []
+	for frame in frames:
+		# okno + przygotowanie buforów FFT
+		var re: Array = []
+		var im: Array = []
+		re.resize(frame_size)
+		im.resize(frame_size)
+		for i in range(frame_size):
+			re[i] = frame[i] * window[i]
+			im[i] = 0.0
+		FFT.fft(re, im)
+
+		# widmo mocy (połowa + DC)
+		var power: Array = []
+		power.resize(n_bins)
+		for k in range(n_bins):
+			power[k] = re[k] * re[k] + im[k] * im[k]
+
+		# log-mel
+		var vec := PackedFloat32Array()
+		vec.resize(n_mels)
+		for m in range(n_mels):
+			var filt: PackedFloat32Array = filterbank[m]
+			var energy: float = 0.0
+			for k in range(n_bins):
+				energy += filt[k] * power[k]
+			vec[m] = log(energy + 1e-10)  # log z floor, żeby uniknąć log(0)
+		result.append(vec)
+	return result
