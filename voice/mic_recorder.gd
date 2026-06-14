@@ -8,20 +8,30 @@ var _recording := false
 var _buffer := PackedFloat32Array()
 
 func _ready() -> void:
+	var bus_idx := AudioServer.get_bus_index("Record")
+	if bus_idx == -1:
+		push_error("MicRecorder: magistrala 'Record' nie znaleziona — sprawdź default_bus_layout.tres")
+		return
+	_capture = AudioServer.get_bus_effect(bus_idx, 0)
+	if _capture == null:
+		push_error("MicRecorder: brak efektu AudioEffectCapture na magistrali 'Record' (pozycja 0)")
+		return
 	_player = AudioStreamPlayer.new()
 	_player.stream = AudioStreamMicrophone.new()
 	_player.bus = "Record"
 	add_child(_player)
-	var bus_idx := AudioServer.get_bus_index("Record")
-	_capture = AudioServer.get_bus_effect(bus_idx, 0)
 
 func start() -> void:
+	if _capture == null or _player == null:
+		return
 	_buffer = PackedFloat32Array()
 	_capture.clear_buffer()
 	_player.play()
 	_recording = true
 
 func stop() -> PackedFloat32Array:
+	if _capture == null or _player == null:
+		return _buffer
 	_recording = false
 	_player.stop()
 	_drain()
@@ -32,6 +42,8 @@ func _process(_delta: float) -> void:
 		_drain()
 
 func _drain() -> void:
+	if _capture == null:
+		return
 	var frames := _capture.get_frames_available()
 	if frames <= 0:
 		return
