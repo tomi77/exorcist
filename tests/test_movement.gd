@@ -45,3 +45,15 @@ func test_cut_jump_reduces_rising_velocity():
 func test_cut_jump_ignores_falling():
 	# opadanie (dodatnie Y) nietknięte
 	assert_almost_eq(Movement.cut_jump(200.0, 0.5), 200.0, 0.0001)
+
+func test_coyote_refills_on_floor():
+	# na ziemi licznik jest doładowany do pełnego okna
+	assert_almost_eq(Movement.tick_coyote(0.0, true, 0.1, 0.016), 0.1, 0.0001)
+
+func test_coyote_decrements_in_air():
+	# w powietrzu maleje o delta
+	assert_almost_eq(Movement.tick_coyote(0.1, false, 0.1, 0.04), 0.06, 0.0001)
+
+func test_coyote_does_not_go_negative():
+	# nie schodzi poniżej zera
+	assert_almost_eq(Movement.tick_coyote(0.02, false, 0.1, 0.1), 0.0, 0.0001)

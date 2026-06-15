@@ -30,3 +30,10 @@ static func cut_jump(vy: float, cut_factor: float) -> float:
 	if vy < 0.0:
 		return vy * cut_factor
 	return vy
+
+## Aktualizacja licznika coyote: na ziemi doładowanie do pełnego okna,
+## w powietrzu odliczanie do zera (bez wartości ujemnych).
+static func tick_coyote(coyote_timer: float, on_floor: bool, coyote_time: float, delta: float) -> float:
+	if on_floor:
+		return coyote_time
+	return max(coyote_timer - delta, 0.0)
