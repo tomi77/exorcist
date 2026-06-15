@@ -88,6 +88,8 @@ func test_gravity_clamped_to_max_fall():
 
 func test_horizontal_accelerates_toward_target():
     # vx=0, kierunek +1, prędkość docelowa 300, accel 3000, krok 0.05 -> +150
+    # (3000 to parametr testu, niezależny od stałej ACCEL=2000 w player.gd —
+    #  czyste funkcje są celowo testowane wartościami spoza domyślnych stałych)
     var vx := Movement.apply_horizontal(0.0, 1.0, 300.0, 3000.0, 3000.0, 0.05)
     assert_almost_eq(vx, 150.0, 0.0001)
 
@@ -287,20 +289,22 @@ extends CharacterBody2D
 
 const Movement = preload("res://player/movement.gd")
 
-const RUN_SPEED := 300.0
-const ACCEL := 2000.0
-const FRICTION := 2500.0
-const GRAVITY := 1200.0
-const MAX_FALL := 1400.0
-const JUMP_SPEED := 520.0
-const COYOTE_TIME := 0.1
-const JUMP_CUT := 0.4
+const RUN_SPEED: float = 300.0
+const ACCEL: float = 2000.0
+const FRICTION: float = 2500.0
+const GRAVITY: float = 1200.0
+const MAX_FALL: float = 1400.0
+const JUMP_SPEED: float = 520.0
+const COYOTE_TIME: float = 0.1
+const JUMP_CUT: float = 0.4
 
 signal died
 
 var _coyote_timer := 0.0
 
 func _physics_process(delta: float) -> void:
+    # is_on_floor() sprzed move_and_slide() — celowe: w klatce zejścia z krawędzi
+    # licznik coyote startuje dopiero od następnej klatki (pełne okno COYOTE_TIME).
     var on_floor := is_on_floor()
     _coyote_timer = Movement.tick_coyote(_coyote_timer, on_floor, COYOTE_TIME, delta)
 
@@ -389,6 +393,8 @@ extends Node2D
 ## Okablowanie poziomu: respawn po śmierci, ukończenie na markerze.
 ## Pułapki i kill-plane są w grupie "hazard" (Area2D). Marker końca: %EndMarker.
 
+signal level_completed
+
 @onready var _player: CharacterBody2D = %Player
 @onready var _start: Marker2D = %StartPoint
 @onready var _end_label: Label = %EndLabel
@@ -411,6 +417,7 @@ func _on_player_died() -> void:
 
 func _on_end_entered(body: Node) -> void:
     if body == _player:
+        emit_signal("level_completed")
         _end_label.visible = true
 ```
 
@@ -439,8 +446,33 @@ Uwagi:
   `PhysicsBody2D`), więc kolizja zadziała przy domyślnych maskach/warstwach. Upewnij
   się, że Area2D i Player mają zgodne `collision_layer`/`collision_mask` (domyślne 1
   wystarczą).
-- Grupy w .tscn: dodaj `groups = PackedStringArray("hazard")` (lub `groups = ["hazard"]`
-  zależnie od wersji formatu — zweryfikuj dla Godot 4) do węzłów pułapek i kill-plane.
+- Grupy w .tscn (Godot 4): dodaj `groups = &["hazard"]` do węzłów pułapek i kill-plane.
+
+Wzór węzła pułapki `Area2D` z grupą (skonwertuj na taby nie dotyczy .tscn, ale zachowaj
+dokładną składnię):
+
+```
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hazard"]
+size = Vector2(64, 16)
+
+[node name="Spikes" type="Area2D" parent="." groups=["hazard"]]
+position = Vector2(400, 300)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Spikes"]
+shape = SubResource("RectangleShape2D_hazard")
+
+[node name="ColorRect" type="ColorRect" parent="Spikes"]
+offset_left = -32.0
+offset_top = -8.0
+offset_right = 32.0
+offset_bottom = 8.0
+color = Color(0.8, 0.1, 0.1, 1)
+```
+
+(Uwaga: w nagłówku węzła grupy podaje się jako atrybut `groups=["hazard"]`; w body
+węzła — gdyby zachodziła potrzeba — odpowiednikiem jest `groups = &["hazard"]`. Użyj
+formy z nagłówka jak wyżej. Kill-plane to analogiczny `Area2D` z `groups=["hazard"]`,
+ale szeroki i umieszczony poniżej poziomu.)
 
 - [ ] **Step 3: Ustaw scenę główną w `project.godot`**
 
