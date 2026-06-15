@@ -34,8 +34,16 @@ strategię z rdzenia głosowego: **oddzielamy czystą logikę od integracji z si
 - Grawitacja z prędkością graniczną spadania.
 - Skok pojedynczy z dwoma usprawnieniami feelu:
   - **Coyote time** — skok dozwolony przez krótkie okno po zejściu z krawędzi.
+    Sama logika licznika coyote (ustawienie przy zejściu z ziemi, odliczanie,
+    wygaśnięcie) jest **czystą funkcją** w `movement.gd` — `player.gd` jedynie
+    przechowuje wartość licznika i przepuszcza ją przez tę funkcję co klatkę,
+    podając aktualne `on_floor` i `delta`. Dzięki temu coyote jest testowalne
+    jednostkowo bez silnika.
   - **Zmienna wysokość skoku** — puszczenie przycisku w trakcie wznoszenia przycina
     prędkość pionową (krótszy skok).
+- Wszystkie czyste funkcje kinematyki przyjmują `delta: float` jako argument (gdy
+  zależą od czasu), aby testy mogły symulować wiele kroków bez silnika — wzorzec
+  przeniesiony z rdzenia głosowego (funkcje brały jawne argumenty zamiast stanu globalnego).
 - Parametry strojenia (grawitacja, prędkość biegu, siła skoku, przyspieszenie,
   tarcie, prędkość graniczna, okno coyote, współczynnik przycięcia) są **argumentami
   czystych funkcji**. Testy podają konkretne wartości; gra trzyma wartości domyślne
@@ -48,7 +56,8 @@ strategię z rdzenia głosowego: **oddzielamy czystą logikę od integracji z si
 - Pozioma sekwencja platform: `StaticBody2D` + `CollisionShape2D` (prostokąty),
   z `ColorRect` jako placeholderem wizualnym (zero zależności od grafiki/tilesetów).
 - **Strefy-pułapki** (kolce/przepaście) jako `Area2D` — dotknięcie zabija gracza.
-- **Kill-plane** pod poziomem (`Area2D` lub próg `y`) — spadek poza poziom zabija.
+- **Kill-plane** pod poziomem jako `Area2D` (jedna konwencja w całym poziomie:
+  pułapki, kill-plane i marker końca to wszystko `Area2D`) — spadek poza poziom zabija.
 - **Punkt startu/respawnu** — pozycja, na którą wraca gracz po śmierci.
 - **Marker końca** jako `Area2D` — wejście kończy poziom: sygnał + komunikat
   „Poziom ukończony".
@@ -57,6 +66,11 @@ strategię z rdzenia głosowego: **oddzielamy czystą logikę od integracji z si
 
 - Śmierć (pułapka albo kill-plane) → respawn na punkcie startu. Bez żyć i HP —
   to należy do walki (plan 004). Pętla śmierć→respawn jest natychmiastowa i prosta.
+- **Przepływ:** wejście gracza w `Area2D` pułapki/kill-plane wywołuje na `player.gd`
+  metodę śmierci, która emituje sygnał `died` (forma stringowa). `test_level.gd`
+  obsługuje `died` i teleportuje gracza na zapamiętaną pozycję startu (zerując prędkość).
+  Marker końca działa analogicznie: wejście → sygnał `level_completed` →
+  `test_level.gd` pokazuje komunikat „Poziom ukończony".
 
 ### 4. Kamera
 
@@ -79,9 +93,11 @@ tests/test_movement.gd        # testy GUT czystej kinematyki
 - `movement.gd` nie wie nic o scenie, węzłach ani `Input` — operuje na liczbach
   i `Vector2`. Jedyna jednostka pokryta testami jednostkowymi.
 - `player.gd` zna silnik (czyta `Input`, woła `movement.gd`, aplikuje
-  `move_and_slide()`, śledzi `is_on_floor()` i licznik coyote, emituje/obsługuje
-  śmierć i respawn).
-- `test_level.gd` łączy sygnały pułapek/markera końca z respawnem gracza i UI.
+  `move_and_slide()`, odczytuje `is_on_floor()`). Przechowuje wartość licznika coyote,
+  ale jego aktualizacja to czysta funkcja z `movement.gd`. Emituje sygnał `died`.
+- `test_level.gd` w `_ready()` podłącza (przez `connect`, nie w edytorze) sygnały:
+  `Area2D` pułapek/kill-plane → śmierć gracza; sygnał `died` gracza → teleport na
+  start; `Area2D` markera końca → `level_completed` → komunikat. Trzyma pozycję startu.
 
 ## Testowanie
 
@@ -105,6 +121,16 @@ tests/test_movement.gd        # testy GUT czystej kinematyki
 - Pułapka i spadek poza poziom → respawn na starcie.
 - Marker końca → komunikat „Poziom ukończony".
 - Kamera płynnie podąża za graczem.
+
+## Kluczowe ryzyko
+
+Analogicznie do strojenia tolerancji w rdzeniu głosowym (plan 001), **głównym
+ryzykiem 002 jest strojenie feelu ruchu** — wartości grawitacji, przyspieszenia,
+tarcia, siły skoku i okna coyote, które „dobrze wyglądają w liczbach", mogą źle
+„czuć się" w grze. Testy jednostkowe gwarantują *poprawność* kinematyki (kierunki,
+limity, monotoniczność), ale NIE *przyjemność* sterowania — tę walidujemy manualnie
+przez granie. Parametryzacja czystych funkcji i trzymanie domyślnych wartości jako
+stałych to celowe „pokrętła" do tej kalibracji.
 
 ## Definicja ukończenia
 
