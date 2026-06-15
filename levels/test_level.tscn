@@ -40,7 +40,7 @@ offset_left = -160.0
 offset_top = -16.0
 offset_right = 160.0
 offset_bottom = 16.0
-color = Color(0.3, 0.3, 0.35, 1)
+color = Color(0.55, 0.42, 0.3, 1)
 
 [node name="Platform2" type="StaticBody2D" parent="."]
 position = Vector2(560, 390)
@@ -53,7 +53,7 @@ offset_left = -128.0
 offset_top = -16.0
 offset_right = 128.0
 offset_bottom = 16.0
-color = Color(0.3, 0.3, 0.35, 1)
+color = Color(0.55, 0.42, 0.3, 1)
 
 [node name="Platform3" type="StaticBody2D" parent="."]
 position = Vector2(940, 350)
@@ -66,7 +66,7 @@ offset_left = -128.0
 offset_top = -16.0
 offset_right = 128.0
 offset_bottom = 16.0
-color = Color(0.3, 0.3, 0.35, 1)
+color = Color(0.55, 0.42, 0.3, 1)
 
 [node name="Platform4" type="StaticBody2D" parent="."]
 position = Vector2(1320, 400)
@@ -79,7 +79,7 @@ offset_left = -128.0
 offset_top = -16.0
 offset_right = 128.0
 offset_bottom = 16.0
-color = Color(0.3, 0.3, 0.35, 1)
+color = Color(0.55, 0.42, 0.3, 1)
 
 [node name="Platform5" type="StaticBody2D" parent="."]
 position = Vector2(1700, 380)
@@ -92,7 +92,7 @@ offset_left = -160.0
 offset_top = -16.0
 offset_right = 160.0
 offset_bottom = 16.0
-color = Color(0.3, 0.3, 0.35, 1)
+color = Color(0.55, 0.42, 0.3, 1)
 
 [node name="Spikes" type="Area2D" parent="." groups=["hazard"]]
 position = Vector2(940, 314)
