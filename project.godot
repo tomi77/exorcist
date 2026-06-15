@@ -13,7 +13,7 @@ config_version=5
 config/name="exorcist"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
-run/main_scene="res://demo/voice_demo.tscn"
+run/main_scene="res://levels/test_level.tscn"
 
 [editor_plugins]
 
