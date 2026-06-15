@@ -24,3 +24,24 @@ func test_horizontal_friction_stops_at_zero_without_overshoot():
 	# brak wejścia (dir 0): tarcie sprowadza do 0 i nie przeskakuje poniżej
 	var vx := Movement.apply_horizontal(150.0, 0.0, 300.0, 3000.0, 3000.0, 0.1)
 	assert_almost_eq(vx, 0.0, 0.0001)
+
+func test_can_jump_on_floor():
+	assert_true(Movement.can_jump(true, 0.0))
+
+func test_can_jump_within_coyote_window():
+	assert_true(Movement.can_jump(false, 0.05))
+
+func test_cannot_jump_in_air_after_coyote():
+	assert_false(Movement.can_jump(false, 0.0))
+
+func test_start_jump_sets_upward_velocity():
+	# skok = ujemna prędkość Y (w górę)
+	assert_almost_eq(Movement.start_jump(600.0), -600.0, 0.0001)
+
+func test_cut_jump_reduces_rising_velocity():
+	# wznoszenie (ujemne Y) przycięte mnożnikiem
+	assert_almost_eq(Movement.cut_jump(-600.0, 0.5), -300.0, 0.0001)
+
+func test_cut_jump_ignores_falling():
+	# opadanie (dodatnie Y) nietknięte
+	assert_almost_eq(Movement.cut_jump(200.0, 0.5), 200.0, 0.0001)
